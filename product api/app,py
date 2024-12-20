@@ -1,0 +1,70 @@
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+# In-memory data store
+products = {}
+current_id = 1
+
+
+@app.route('/products', methods=['GET'])
+def get_products():
+    """Retrieve all products."""
+    return jsonify(list(products.values())), 200
+
+
+@app.route('/products/<int:product_id>', methods=['GET'])
+def get_product(product_id):
+    """Retrieve a single product by ID."""
+    product = products.get(product_id)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+    return jsonify(product), 200
+
+
+@app.route('/products', methods=['POST'])
+def create_product():
+    """Create a new product."""
+    global current_id
+    data = request.json
+
+    if not data or 'name' not in data or 'price' not in data:
+        return jsonify({"error": "Invalid input"}), 400
+
+    product = {
+        "id": current_id,
+        "name": data['name'],
+        "price": data['price']
+    }
+    products[current_id] = product
+    current_id += 1
+    return jsonify(product), 201
+
+
+@app.route('/products/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    """Update an existing product."""
+    product = products.get(product_id)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+
+    data = request.json
+    if not data:
+        return jsonify({"error": "Invalid input"}), 400
+
+    product['name'] = data.get('name', product['name'])
+    product['price'] = data.get('price', product['price'])
+    return jsonify(product), 200
+
+
+@app.route('/products/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    """Delete a product."""
+    product = products.pop(product_id, None)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+    return jsonify({"message": "Product deleted"}), 200
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000, host='0.0.0.0')
